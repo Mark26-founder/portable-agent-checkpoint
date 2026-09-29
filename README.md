@@ -1,0 +1,141 @@
+[README.md](https://github.com/user-attachments/files/32807625/README.md)
+# Portable Agent Checkpoint (PAC)
+
+PAC is a local-first, open-source system that captures, verifies, compresses, and transfers the working state of an AI-assisted software development task between AI agents and humans.
+
+> **"Git preserves code state. PAC preserves AI work state."**
+
+## Core Problem
+When AI coding sessions end or switch agents, the receiving agent must:
+- Re-read all files to discover what was done
+- Reconstruct decisions that aren't visible in code
+- Repeat already-completed work
+- Lose architectural context not committed to the repository
+
+PAC eliminates this reconstruction burden by creating structured, verifiable checkpoints of AI work state.
+
+## What PAC Is NOT
+- **NOT Git or Version Control**: Git tracks source code diffs; PAC tracks task objectives, completed/remaining sub-tasks, architectural decisions, and evidence.
+- **NOT an AI Agent or Orchestrator**: PAC makes zero LLM API calls and runs no agents. It is a deterministic utility.
+- **NOT a Vector Database or RAG System**: Checkpoints are plain, human-readable JSON files.
+- **NOT a Cloud Service or SaaS**: PAC operates strictly on the local filesystem with zero network traffic or telemetry.
+
+## Product Differentiation
+PAC occupies a distinct position in the AI development tool ecosystem:
+- **vs. Git**: Git preserves code state. PAC preserves AI work state.
+- **vs. Vector RAG / Memory**: RAG indexes unstructured chat history for similarity retrieval; PAC generates a deterministic, verified continuation prompt (<1,000 tokens).
+- **vs. IDE Context**: IDE session logs are vendor-locked; PAC provides a portable, vendor-neutral checkpoint schema.
+- **vs. Agent Frameworks**: Frameworks orchestrate live LLMs; PAC is a zero-dependency, local-first CLI tool.
+
+
+## Workflow & Handoff
+
+```
+Agent A → pac capture → .ai/checkpoint.json → pac verify → pac resume → Agent B
+```
+
+1. **Agent A** captures working state (`pac capture`).
+2. **PAC** verifies claims against the workspace (`pac verify`).
+3. **Agent B** resumes with compressed continuation context under 1,000 tokens (`pac resume`).
+
+## Status & Sector History
+* **S1: Specification**: Complete & Frozen (`.ai/`)
+* **S2: Checkpoint Core**: Domain models, validation, schema locking (`SUPPORTED_VERSION = "1.0"`)
+* **S3: Capture Engine**: Git inspection, secret redaction, task ingestion
+* **S4: Verification Engine**: Physical file existence, working tree staleness detection
+* **S5: Resume & Diff Engine**: Compact prompt generation (<1,000 tokens), work-state comparison
+* **S6: Adapter Layer**: Generic adapter, vendor-neutral normalization
+* **S7: History & Recovery**: Archive store (`.ai/checkpoints/`), SHA-256 IDs, atomic recovery
+* **S8: Evidence Trust Hardening**: 5-state claim-level evidence model, strict aggregate classification
+* **S9: Benchmark Harness**: Protocol-level simulation harness (3 tasks)
+* **S10: Production Hardening & Release**: Production readiness, CLI error handling, complete unit tests
+
+## Installation
+
+Requires Python 3.9+.
+
+```bash
+pip install .
+```
+
+Or for local development:
+```bash
+pip install -e .
+```
+
+## Commands
+
+```bash
+# Capture current workspace state into .ai/checkpoint.json
+pac capture [--context <file>] [--out <file>] [--task <str>] [--next <str>]
+
+# Capture via adapter normalization (cross-agent handoff)
+pac capture --adapter generic --agent-context <agent-context.json>
+
+# Verify claims in checkpoint against working tree
+pac verify [<checkpoint_path>] [--strict] [--update]
+
+# Generate compressed continuation prompt (<1,000 tokens)
+pac resume [<checkpoint_path>] [--format markdown|json]
+
+# Compare work-state deltas between two checkpoints
+pac diff <checkpoint_a> <checkpoint_b>
+
+# List historical checkpoints stored in .ai/checkpoints/
+pac history
+
+# Inspect detailed contents of a checkpoint
+pac inspect [<checkpoint>]
+
+# Recover a historical checkpoint as active (.ai/checkpoint.json)
+pac recover <checkpoint>
+```
+
+## Evidence Model
+PAC evaluates claims using a 5-state evidence classification model:
+- `VERIFIED`: Confirmed by PAC via deterministic tool execution.
+- `OBSERVED`: Directly observed workspace state (file existence, matching Git commit).
+- `AGENT_REPORTED`: Stated by agent; not independently confirmed.
+- `UNKNOWN`: Claim exists with no verifiable target.
+- `STALE`: Previously verified/observed claim where workspace has drifted.
+
+## History & Recovery
+- Checkpoints are archived into `.ai/checkpoints/<id>.json` using deterministic SHA-256 IDs.
+- `pac recover <id>` restores **AI work state only** by replacing active `.ai/checkpoint.json`.
+- Critical Invariant: `pac recover` **NEVER** restores or rolls back source code files or Git commits.
+
+## Adapter Input Format (Generic Adapter)
+
+```json
+{
+  "agent": { "name": "my-agent", "version": "1.0" },
+  "task": {
+    "objective": "Implement user authentication",
+    "completed": ["Created JWT module"],
+    "remaining": ["Add tests"],
+    "next_action": "Run pytest tests/test_auth.py"
+  },
+  "decisions": [
+    { "decision": "Use PyJWT", "reason": "Stateless and secure" }
+  ],
+  "constraints": ["Do not modify existing public API"]
+}
+```
+
+See `examples/agent-A.json` and `examples/agent-B.json` for complete examples.
+
+## Benchmark & Limitations
+
+- **S9 Pilot Benchmark**: S9 evaluated PAC across 3 tasks in a controlled protocol-level simulation. It demonstrated a calculated 77.8% reduction in modeled reconstruction steps before first productive action.
+- **Benchmark Limitations**: The S9 benchmark is a protocol-level simulation, not a live multi-agent execution. Token figures are approximate character-proxy estimates and do not claim live LLM API token or wall-clock savings.
+- **Real-World Validation Protocol**: See [.ai/VALIDATION-PLAN.md](file:///d:/B.P/personal%20projects/github%20page%20building/portable-agent-checkpoint/.ai/VALIDATION-PLAN.md) for the experimental design to validate PAC with human developers and live AI coding agents (`UNVALIDATED`).
+- **Current Product Limitations**:
+  - File-existence checks yield `OBSERVED`, never `VERIFIED`.
+  - Single active checkpoint model per workspace (no branch tree).
+  - No editor or IDE plugin integration.
+  - Standard library only for PAC core; zero third-party runtime dependencies.
+
+## Security & Data Privacy
+- Local-first: zero network calls, zero telemetry, zero cloud storage.
+- Synchronous secret redaction filters API keys, AWS credentials, passwords, and machine-specific absolute paths on capture.
+- Adapters never access private agent session files, IDE databases, or browser state.
