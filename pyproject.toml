@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "portable-agent-checkpoint"
+version = "0.1.0"
+description = "Preserve and transfer AI work state across coding agents"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+pac = "pac.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
